@@ -52,5 +52,6 @@ sequelize.authenticate()
 });
   })
   .catch(err => {
-    console.error("Database connection failed:", err.message);
+    console.error("❌ Database connection failed:");
+console.error(err);
   });

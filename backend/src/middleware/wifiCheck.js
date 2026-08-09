@@ -1,49 +1,58 @@
-module.exports = (req, res, next) => {
+const getClientIp = (req) => {
+  let ip = req.socket.remoteAddress;
 
-  const rawIp =
-    req.headers['x-forwarded-for']?.split(',')[0] ||
-    req.socket.remoteAddress ||
-    req.ip;
-
-  const clientIp = rawIp?.replace('::ffff:', '');
-
-  console.log("🔍 CLIENT IP:", clientIp);
-
-  // ✅ DEV MODE BYPASS (localhost only)
-  if (
-    clientIp === '127.0.0.1' ||
-    clientIp === '::1' ||
-    !clientIp
-  ) {
-    console.log("🔧 DEV MODE: Localhost allowed");
-    req.clientIp = '127.0.0.1';
-    return next();
+  if (ip) {
+    ip = ip.replace(/^::ffff:/, '');
   }
 
-  // 🎯 Hostel WiFi range check
-  const isHostelWifi = (ip) => {
-    const parts = ip.split('.');
-    if (parts.length !== 4) return false;
+  return ip;
+};
 
-    if (parts[0] === '192' && parts[1] === '168') {
-      const third = Number(parts[2]);
-      return third >= 100 && third <= 111;
-    }
+const isHostelWifi = (ip) => {
+  if (!ip) return false;
+
+  // Development only
+  if (ip === '127.0.0.1' || ip === '::1') {
+    return true;
+  }
+
+  const parts = ip.split('.').map(Number);
+
+  if (
+    parts.length !== 4 ||
+    parts.some(part => Number.isNaN(part) || part < 0 || part > 255)
+  ) {
     return false;
-  };
+  }
+
+  return (
+    parts[0] === 192 &&
+    parts[1] === 168 &&
+    parts[2] >= 100 &&
+    parts[2] <= 111
+  );
+};
+
+module.exports = (req, res, next) => {
+  const clientIp = getClientIp(req);
+
+  console.log('\n🔍 WIFI CHECK');
+  console.log('   Client IP:', clientIp);
 
   if (isHostelWifi(clientIp)) {
-    console.log("✅ HOSTEL WIFI CONFIRMED:", clientIp);
+    console.log('   ✅ HOSTEL WIFI CONFIRMED');
+
     req.clientIp = clientIp;
     return next();
   }
 
-  // ❌ Block everything else
-  console.log("❌ BLOCKED IP:", clientIp);
+  console.log('   ❌ NOT HOSTEL WIFI');
 
   return res.status(403).json({
     success: false,
-    error: "Connect to hostel WiFi only",
-    currentIP: clientIp
+    error: 'INVALID_WIFI',
+    message: 'Connect to hostel WiFi only',
+    currentIP: clientIp,
+    requiredRange: '192.168.100.0 - 192.168.111.255'
   });
 };
