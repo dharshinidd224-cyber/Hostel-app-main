@@ -4,17 +4,17 @@ import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
 import Button from '../../../components/ui/Button';
 import Icon from '../../../components/AppIcon';
-import api from '../../../utils/api';
+//import api from '../../../utils/api';
 
-const RegistrationForm = () => {
+const RegistrationForm = ({ onNext }) => {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
+  //const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     collegeId: '',
-    roomNumber: '',
+    roomNumber: '', 
     blockNumber: '',
     department: '',
     year: '',
@@ -138,45 +138,17 @@ const RegistrationForm = () => {
     return Object.keys(newErrors)?.length === 0;
   };
 
-  const handleSubmit = async (e) => {
-  e.preventDefault();
+const handleSubmit = (e) => {
+    e.preventDefault();
 
-  if (!validateForm()) return;
+    if (!validateForm()) return;
 
-  setLoading(true);
-  setErrors({});
-
-  try {
-    await api.post("/auth/register", {
-  collegeId: formData.collegeId,
-  password: formData.password,
-  role: "student",
-
-  // 👇 SEND STUDENT DATA
-  name: formData.name,
-  roomNumber: formData.roomNumber,
-  blockNumber: formData.blockNumber,
-  department: formData.department,
-  phoneNumber: formData.phoneNumber,
-  year: formData.year
-});
-
-
-    navigate("/login");
-  } catch (err) {
-    if (err.response?.status === 409) {
-      setErrors({
-        submit: "College ID already registered. Please login."
-      });
-    } else {
-      setErrors({
-        submit: "Registration failed. Please try again."
-      });
-    }
-  } finally {
-    setLoading(false); // ✅ VERY IMPORTANT
-  }
+    onNext(formData);
 };
+
+
+    
+  
 
   const getPasswordStrength = (password) => {
     if (!password) return { strength: 0, label: '', color: '' };
@@ -331,22 +303,18 @@ const RegistrationForm = () => {
         </button>
       </div>
       {/* Submit error message */}
-{errors?.submit && (
-  <div className="p-3 bg-destructive/10 text-destructive rounded-lg text-sm">
-    {errors.submit}
-  </div>
-)}
+
 
       <div className="pt-4 md:pt-6">
         <Button
           type="submit"
           variant="default"
           fullWidth
-          loading={loading}
+          //loading={loading}
           iconName="UserPlus"
           iconPosition="left"
         >
-          {loading ? 'Creating Account...' : 'Register'}
+          Next
         </Button>
       </div>
       <div className="text-center pt-2">
