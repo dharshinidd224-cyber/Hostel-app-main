@@ -8,7 +8,8 @@ import PoseGuide, { POSES } from './PoseGuide';
 import CapturedGallery from './CapturedGallery';
 
 // Adjust to match wherever the Express backend is mounted (or rely on a dev-server proxy).
-const REGISTRATION_ENDPOINT = '/api/students/register';
+const REGISTRATION_ENDPOINT =
+  "http://localhost:5000/api/students/register";
 
 const LOADING_MESSAGES = [
   'Creating Account...',

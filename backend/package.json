@@ -16,6 +16,7 @@
     "helmet": "^8.1.0",
     "ip-range-check": "^0.2.0",
     "jsonwebtoken": "^9.0.2",
+    "multer": "^2.2.0",
     "mysql2": "^3.11.5",
     "sequelize": "^6.37.3"
   },

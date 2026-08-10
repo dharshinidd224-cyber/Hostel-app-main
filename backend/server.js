@@ -15,7 +15,8 @@ app.use(cors({
   origin: [
     'http://localhost:3000',           // For localhost development
     'http://192.168.106.191:3000',     // For network access
-    'http://127.0.0.1:3000'            // Alternative localhost
+    'http://127.0.0.1:3000',
+    'http://10.62.62.163:3000'           // Alternative localhost
   ],
   credentials: true
 }));

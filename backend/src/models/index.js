@@ -1,5 +1,6 @@
 const { sequelize } = require('../config/db');
 
+
 // Import models
 const User = require('./User');
 const Student = require('./Student');
@@ -7,6 +8,7 @@ const Grievance = require('./Grievance');
 const Notice = require('./Notice');
 const Feedback = require('./Feedback');
 const Attendance = require('./attendance.model');
+const FaceEmbedding = require('./FaceEmbedding');
 
 // Remove any associate functions
 delete User.associate;
@@ -68,6 +70,18 @@ Student.hasMany(Attendance, {
   as: 'attendance'
 });
 
+Student.hasMany(FaceEmbedding, {
+  foreignKey: 'student_id',
+  sourceKey: 'id',
+  as: 'faceEmbeddings'
+});
+
+FaceEmbedding.belongsTo(Student, {
+  foreignKey: 'student_id',
+  targetKey: 'id',
+  as: 'student'
+});
+
 module.exports = {
   sequelize,
   User,
@@ -75,5 +89,6 @@ module.exports = {
   Grievance,
   Notice,
   Feedback,
-  Attendance
+  Attendance,
+  FaceEmbedding
 };
