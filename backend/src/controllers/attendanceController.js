@@ -25,50 +25,7 @@ const getClientIp = (req) => {
   return ip;
 };
 
-const isHostelWifi = (ip) => {
-  if (!ip) {
-    console.log('❌ No IP provided');
-    return false;
-  }
 
-  const cleanIp = ip.replace(/^::ffff:/, '').trim();
-  console.log(`\n🔍 WiFi Check for IP: ${cleanIp}`);
-
-  if (cleanIp === '127.0.0.1' || cleanIp === '::1' || cleanIp === 'localhost') {
-    console.log('⚠️ LOCALHOST DETECTED - BYPASSING WiFi check (Development Mode)');
-    return true;
-  }
-
-  const ipv4Regex = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
-  const match = cleanIp.match(ipv4Regex);
-  
-  if (!match) {
-    console.log(`❌ Invalid IPv4 format: ${cleanIp}`);
-    return false;
-  }
-
-  const parts = cleanIp.split('.').map(Number);
-  
-  if (parts.some(part => part < 0 || part > 255)) {
-    console.log(`❌ Invalid IP octets: ${cleanIp}`);
-    return false;
-  }
-
-  console.log(`   IP Parts: [${parts.join(', ')}]`);
-
-  const isValid = (
-    parts[0] === 192 &&
-    parts[1] === 168 &&
-    parts[2] >= 100 &&
-    parts[2] <= 111
-  );
-
-  console.log(`   Range Check: 192.168.[${parts[2]}].${parts[3]}`);
-  console.log(`   Third Octet: ${parts[2]} (Must be 100-111)`);
-  console.log(`   Result: ${isValid ? '✅ VALID HOSTEL WIFI' : '❌ NOT HOSTEL WIFI'}`);
-  
-  return isValid;
-};
 
 const isWithinAttendanceWindow = () => {
   const now = new Date();
@@ -127,28 +84,12 @@ exports.markAttendance = async (req, res) => {
     console.log(`📝 MARK ATTENDANCE REQUEST - User ID: ${userId}`);
     console.log(`${'='.repeat(60)}`);
     
-    const clientIp = getClientIp(req);
-    const wifiValid = isHostelWifi(clientIp);
-    
-    if (!wifiValid) {
-      console.log(`\n❌ ATTENDANCE REJECTED: Invalid WiFi`);
-      console.log(`${'='.repeat(60)}\n`);
-      
-      return res.status(403).json({
-        success: false,
-        message: "You must be connected to hostel WiFi (SSID: Student)",
-        error: "INVALID_WIFI",
-        debug: {
-          yourIp: clientIp,
-          requiredRange: "192.168.100.0 - 192.168.111.255",
-          hint: clientIp === '127.0.0.1' 
-            ? "You're on localhost - this should work in development."
-            : "Please connect to the 'Student' WiFi network and try again."
-        }
-      });
-    }
+   const clientIp = req.clientIp;
 
-    console.log(`✅ WiFi validation PASSED`);
+console.log(`✅ WiFi validation PASSED`);
+console.log(`   Client IP: ${clientIp}`);
+
+  
 
     const today = new Date().toISOString().split("T")[0];
     const currentTime = new Date().toTimeString().split(" ")[0];
@@ -210,6 +151,58 @@ exports.markAttendance = async (req, res) => {
     return res.status(500).json({ 
       success: false,
       error: error.message 
+    });
+  }
+};
+
+exports.resetTodayAttendance = async (req, res) => {
+  try {
+    const userId = req.user.user_id;
+    const today = new Date().toISOString().split("T")[0];
+
+    console.log(`\n🧪 DEV RESET ATTENDANCE`);
+    console.log(`   User ID: ${userId}`);
+    console.log(`   Date: ${today}`);
+
+    // Safety: only allow this in development
+    if (process.env.NODE_ENV === "production") {
+      return res.status(403).json({
+        success: false,
+        message: "Development endpoint is disabled in production"
+      });
+    }
+
+    const deletedCount = await Attendance.destroy({
+      where: {
+        user_id: userId,
+        date: today
+      }
+    });
+
+    if (deletedCount === 0) {
+      return res.json({
+        success: true,
+        message: "No attendance record found for today",
+        deleted: false
+      });
+    }
+
+    console.log(`   🗑️ Today's attendance deleted`);
+
+    return res.json({
+      success: true,
+      message: "Today's attendance reset successfully",
+      deleted: true,
+      date: today
+    });
+
+  } catch (error) {
+    console.error("❌ ERROR resetting attendance:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to reset today's attendance",
+      error: error.message
     });
   }
 };
@@ -290,40 +283,36 @@ exports.validateWifi = async (req, res) => {
     console.log(`\n${'='.repeat(60)}`);
     console.log(`🔍 WIFI VALIDATION REQUEST`);
     console.log(`${'='.repeat(60)}`);
-    
-    const clientIp = getClientIp(req);
-    const isValid = isHostelWifi(clientIp);
+
+    // wifiCheck middleware has already validated the IP
+    const clientIp = req.clientIp;
+
     const timeValid = isWithinAttendanceWindow();
 
     console.log(`\n📊 VALIDATION SUMMARY:`);
     console.log(`   IP Address: ${clientIp}`);
-    console.log(`   WiFi Valid: ${isValid ? '✅ YES' : '❌ NO'}`);
+    console.log(`   WiFi Valid: ✅ YES`);
     console.log(`   Time Valid: ${timeValid ? '✅ YES' : '❌ NO'}`);
     console.log(`${'='.repeat(60)}\n`);
 
     return res.json({
-      success: isValid,
+      success: true,
       ip: clientIp,
-      isHostelWifi: isValid,
+      isHostelWifi: true,
       timeWindow: timeValid,
-      message: isValid 
-        ? "✅ Connected to hostel WiFi (SSID: Student)" 
-        : "❌ Not connected to hostel WiFi. Please connect to 'Student' network.",
-      requiredRange: "192.168.100.0 - 192.168.111.255",
-      debug: {
-        headers: {
-          'x-forwarded-for': req.headers['x-forwarded-for'],
-          'x-real-ip': req.headers['x-real-ip']
-        },
-        detectedIp: clientIp
-      }
+      canMarkAttendance: timeValid,
+      message: timeValid
+        ? "✅ Connected to hostel WiFi (SSID: Student)"
+        : "✅ Hostel WiFi connected, but attendance window is closed",
+      requiredRange: "192.168.96.0/20"
     });
 
   } catch (error) {
     console.error(`❌ ERROR validating WiFi:`, error);
-    return res.status(500).json({ 
+
+    return res.status(500).json({
       success: false,
-      error: error.message 
+      error: error.message
     });
   }
 };

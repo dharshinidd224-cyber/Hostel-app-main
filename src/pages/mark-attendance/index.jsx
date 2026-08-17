@@ -7,9 +7,10 @@ import WiFiValidationCard from './components/WiFiValidationCard';
 import AttendanceHistoryWidget from './components/AttendanceHistoryWidget';
 import AttendancePolicyCard from './components/AttendancePolicyCard';
 import Icon from '../../components/AppIcon';
+import { resetTodayAttendance } from '../../utils/attendanceService';
 
 // ✅ Dynamic API URL - works for both localhost and network
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API_URL = 'http://192.168.99.25:5000';
 
 const MarkAttendance = () => {
   const navigate = useNavigate();
@@ -196,6 +197,33 @@ const MarkAttendance = () => {
     }
   };
 
+  const handleResetAttendance = async () => {
+  try {
+    setIsLoading(true);
+
+    const result = await resetTodayAttendance();
+
+    console.log("🧪 Reset response:", result);
+
+    if (result.success) {
+      setIsMarkedToday(false);
+      setMarkedTime(null);
+      setShowSuccessModal(false);
+
+      // Refresh attendance history/status
+      window.location.reload();
+    } else {
+      alert(result.message || "Failed to reset attendance.");
+    }
+
+  } catch (error) {
+    console.error("❌ Reset attendance error:", error);
+    alert(error.message || "Failed to reset attendance.");
+  } finally {
+    setIsLoading(false);
+  }
+};
+
   return (
     <div className="min-h-screen bg-background pt-6">
       <DashboardNavigation userRole="student" notificationCount={3} />
@@ -322,6 +350,29 @@ const MarkAttendance = () => {
             isLoading={isLoading}
             isMarked={todayMarked}
           />
+
+          {process.env.NODE_ENV !== 'production' && (
+  <div className="bg-amber-50 border-2 border-dashed border-amber-300 rounded-xl p-4">
+    <div className="flex items-center justify-between gap-4">
+      <div>
+        <h3 className="font-semibold text-amber-900">
+          🧪 Development Testing
+        </h3>
+        <p className="text-sm text-amber-700">
+          Reset today's attendance so you can test again.
+        </p>
+      </div>
+
+      <button
+        onClick={handleResetAttendance}
+        disabled={isLoading}
+        className="px-4 py-2 bg-amber-500 hover:bg-amber-600 disabled:bg-gray-400 text-white font-semibold rounded-lg transition-colors"
+      >
+        {isLoading ? 'Resetting...' : "Reset Today's Attendance"}
+      </button>
+    </div>
+  </div>
+)}
 
           <AttendanceHistoryWidget
             attendanceRecords={attendanceRecords}

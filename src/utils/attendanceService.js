@@ -67,11 +67,25 @@ export const autoMarkAbsent = async () => {
   }
 };
 
+// Development: reset today's attendance
+export const resetTodayAttendance = async () => {
+  try {
+    const response = await api.post('/attendance/dev/reset-today');
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || {
+      success: false,
+      message: 'Failed to reset attendance'
+    };
+  }
+};
+
 export default {
   markAttendance,
   getAttendanceHistory,
   getTodayAttendance,
   validateWifi,
   getAttendanceReport,
-  autoMarkAbsent
+  autoMarkAbsent,
+  resetTodayAttendance
 };

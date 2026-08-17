@@ -6,6 +6,7 @@ import AttendanceCard from './components/AttendanceCard';
 import AttendanceHistory from './components/AttendanceHistory';
 import WifiStatusIndicator from './components/WifiStatusIndicator';
 import SuccessConfirmation from './components/SuccessConfirmation';
+import { resetTodayAttendance } from '../../utils/attendanceService';
 
 const AttendanceMarking = () => {
   const [showValidator, setShowValidator] = useState(false);
@@ -121,6 +122,34 @@ const AttendanceMarking = () => {
     setShowSuccess(false);
   };
 
+  const handleResetAttendance = async () => {
+  try {
+    setIsLoading(true);
+
+    const result = await resetTodayAttendance();
+
+    if (result.success) {
+      // Reset the local UI
+      setTodayAttendance({
+        marked: false,
+        timestamp: null
+      });
+
+      setShowSuccess(false);
+
+      alert("Today's attendance has been reset for testing.");
+    } else {
+      alert(result.message || "Failed to reset attendance.");
+    }
+
+  } catch (error) {
+    console.error("Reset attendance error:", error);
+    alert(error.message || "Failed to reset attendance.");
+  } finally {
+    setIsLoading(false);
+  }
+};
+
   return (
     <>
       <RoleBasedNavigation userRole="student" />
@@ -142,6 +171,8 @@ const AttendanceMarking = () => {
               onMarkAttendance={handleMarkAttendance}
               isLoading={isLoading}
             />
+
+           
 
             <AttendanceHistory history={attendanceHistory} />
           </div>

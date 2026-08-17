@@ -1,5 +1,8 @@
 const getClientIp = (req) => {
-  let ip = req.socket.remoteAddress;
+  let ip =
+    req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+    req.socket.remoteAddress ||
+    req.ip;
 
   if (ip) {
     ip = ip.replace(/^::ffff:/, '');
@@ -20,17 +23,27 @@ const isHostelWifi = (ip) => {
 
   if (
     parts.length !== 4 ||
-    parts.some(part => Number.isNaN(part) || part < 0 || part > 255)
+    parts.some(
+      part => Number.isNaN(part) || part < 0 || part > 255
+    )
   ) {
     return false;
   }
 
-  return (
+  // Hostel Wi-Fi: 192.168.96.0/20
+  //
+  // Valid range:
+  // 192.168.96.0
+  //       to
+  // 192.168.111.255
+
+  const isCorrectNetwork =
     parts[0] === 192 &&
     parts[1] === 168 &&
-    parts[2] >= 100 &&
-    parts[2] <= 111
-  );
+    parts[2] >= 96 &&
+    parts[2] <= 111;
+
+  return isCorrectNetwork;
 };
 
 module.exports = (req, res, next) => {
@@ -53,6 +66,6 @@ module.exports = (req, res, next) => {
     error: 'INVALID_WIFI',
     message: 'Connect to hostel WiFi only',
     currentIP: clientIp,
-    requiredRange: '192.168.100.0 - 192.168.111.255'
+    requiredRange: '192.168.96.0/20'
   });
 };

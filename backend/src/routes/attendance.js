@@ -18,10 +18,22 @@ router.post(
 );
 router.get('/today', authenticate, attendanceController.getTodayAttendance);
 router.get('/history', authenticate, attendanceController.getAttendanceHistory);
-router.get('/validate-wifi', authenticate, attendanceController.validateWifi);
+router.get(
+  '/validate-wifi',
+  authenticate,
+  wifiCheck,
+  attendanceController.validateWifi
+);
 
 // Warden routes
 router.get('/report', authenticate, attendanceController.getAttendanceReport);
 router.post('/auto-mark-absent', authenticate, attendanceController.autoMarkAbsent);
+
+// 🧪 Development-only testing route
+router.post(
+  '/dev/reset-today',
+  authenticate,
+  attendanceController.resetTodayAttendance
+);
 
 module.exports = router;
